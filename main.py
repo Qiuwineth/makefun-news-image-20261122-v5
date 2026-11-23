@@ -119,8 +119,9 @@ def glyph(ch):
 
 # ---------------------------------------------------------------- canvas
 SS = 2                      # supersample factor (rendered big, averaged down)
-W, H = 1200, 1200           # final size
+W, H = 1024, 1024           # final size (the bounty gate caps entries at 1024x1024)
 DW, DH = W * SS, H * SS
+DS = DW / 1200.0            # layout is designed on a 1200px grid; DS maps it to device px
 BUF = bytearray(DW * DH * 3)
 
 
@@ -139,8 +140,8 @@ def fill_all(rgb):
 
 
 def rect(x, y, w, h, rgb):
-    x0, y0 = int(round(x * SS)), int(round(y * SS))
-    x1, y1 = int(round((x + w) * SS)), int(round((y + h) * SS))
+    x0, y0 = int(round(x * DS)), int(round(y * DS))
+    x1, y1 = int(round((x + w) * DS)), int(round((y + h) * DS))
     rw = bytes(rgb) * max(0, x1 - x0)
     for yy in range(max(0, y0), min(DH, y1)):
         i = (yy * DW + max(0, x0)) * 3
@@ -148,7 +149,7 @@ def rect(x, y, w, h, rgb):
 
 
 def disc(cx, cy, r, rgb):
-    cx, cy, r = cx * SS, cy * SS, r * SS
+    cx, cy, r = cx * DS, cy * DS, r * DS
     x0, x1 = int(cx - r - 1), int(cx + r + 1)
     y0, y1 = int(cy - r - 1), int(cy + r + 1)
     r2 = r * r
@@ -162,8 +163,8 @@ def disc(cx, cy, r, rgb):
 
 def line(x0, y0, x1, y1, rgb, wdt):
     """Thick line with round caps, drawn by stamping discs."""
-    x0, y0, x1, y1 = x0 * SS, y0 * SS, x1 * SS, y1 * SS
-    r = wdt * SS / 2.0
+    x0, y0, x1, y1 = x0 * DS, y0 * DS, x1 * DS, y1 * DS
+    r = wdt * DS / 2.0
     dx, dy = x1 - x0, y1 - y0
     dist = max(abs(dx), abs(dy))
     steps = max(1, int(dist / max(1.0, r * 0.55)))
@@ -190,7 +191,7 @@ def poly(pts, rgb, wdt, close=False):
 
 def fill_poly(pts, rgb):
     """Scanline polygon fill (even-odd), device space."""
-    dp = [(x * SS, y * SS) for x, y in pts]
+    dp = [(x * DS, y * DS) for x, y in pts]
     ys = [p[1] for p in dp]
     y0, y1 = int(min(ys)), int(max(ys))
     n = len(dp)
@@ -480,23 +481,23 @@ def box(x, y, idx, kicker, headlines, body):
 def main():
     fill_all(PAPER)
     for inset, wd in ((14, 3), (22, 1.4)):
-        poly([(inset, inset), (W - inset, inset), (W - inset, H - inset),
-              (inset, H - inset)], INK, wd, close=True)
-    draw_text(W / 2, 54, "LATE CITY EDITION \u00b7 No. 47 \u00b7 ONE DAY \u2014 ONE PICTURE",
+        poly([(inset, inset), (1200 - inset, inset), (1200 - inset, 1200 - inset),
+              (inset, 1200 - inset)], INK, wd, close=True)
+    draw_text(600, 54, "LATE CITY EDITION \u00b7 No. 47 \u00b7 ONE DAY \u2014 ONE PICTURE",
               15.5, INK, 2.4, tracking=2.5, align='center')
-    line(36, 66, W - 36, 66, INK, 2)
+    line(36, 66, 1164, 66, INK, 2)
     mast = "THE WORLD ON SUNDAY"
     cap = fit_cap(mast, 1120, 3)
-    draw_text(W / 2, 78 + cap, mast, cap, INK, cap * 0.13, tracking=3, align='center')
+    draw_text(600, 78 + cap, mast, cap, INK, cap * 0.13, tracking=3, align='center')
     ry = 78 + cap + 14
-    line(36, ry, W - 36, ry, RED, 4.5)
-    line(36, ry + 6, W - 36, ry + 6, INK, 1.4)
+    line(36, ry, 1164, ry, RED, 4.5)
+    line(36, ry + 6, 1164, ry + 6, INK, 1.4)
     bar_y = ry + 14
     rect(36, bar_y, 1128, 52, INK)
     draw_text(54, bar_y + 34, "ALL THE DAY'S NEWS", 18, WHITE, 2.6, tracking=1)
-    draw_text(W / 2, bar_y + 35, "SUNDAY \u00b7 22 NOVEMBER 2026", 24.5, WHITE, 3.4,
+    draw_text(600, bar_y + 35, "SUNDAY \u00b7 22 NOVEMBER 2026", 24.5, WHITE, 3.4,
               tracking=1, align='center')
-    draw_text(W - 54, bar_y + 34, "IN ONE PICTURE", 18, WHITE, 2.6, tracking=1, align='right')
+    draw_text(1146, bar_y + 34, "IN ONE PICTURE", 18, WHITE, 2.6, tracking=1, align='right')
     kick_y = bar_y + 86
     draw_text(36, kick_y, "THE SUMMIT FALLOUT \u00b7 SHENZHEN \u2014 WASHINGTON \u2014 KYIV",
               19, RED, 3, tracking=1.2)
@@ -524,10 +525,10 @@ def main():
     draw_text(tx + 22, sb_y + 39, "RUSSIA'S BIGGEST ATTACK DAY OF THE YEAR", 16.5, INK, 2.9)
     div_y = lead_y + 252
     div_txt = "SIX MORE STORIES THAT SHAPED THE DAY"
-    draw_text(W / 2, div_y, div_txt, 19, INK, 3.2, tracking=1, align='center')
+    draw_text(600, div_y, div_txt, 19, INK, 3.2, tracking=1, align='center')
     div_hw = text_w(div_txt, 19, 1) / 2
-    line(36, div_y - 8, W / 2 - div_hw - 18, div_y - 8, INK, 2)
-    line(W / 2 + div_hw + 18, div_y - 8, W - 36, div_y - 8, INK, 2)
+    line(36, div_y - 8, 600 - div_hw - 18, div_y - 8, INK, 2)
+    line(600 + div_hw + 18, div_y - 8, 1164, div_y - 8, INK, 2)
     for i, (kick, heads, body) in enumerate(STORIES):
         box(36 + (i % 3) * 372, 700 + (i // 3) * 218, i, kick, heads, body)
     rect(36, 1134, 1128, 40, INK)
@@ -535,7 +536,7 @@ def main():
     fx = 54 + text_w("ALSO TODAY", 12.5, 1) + 16
     ftext = ("NEPAL'S PM IN DELHI FOR TALKS WITH MODI \u00b7 ROHINGYA WELCOME THE ICJ "
              "GENOCIDE VERDICT \u2014 AND ASK TO GO HOME \u00b7 DRAWN IN PURE PYTHON")
-    fcap = min(12.5, fit_cap(ftext, W - 54 - fx, 0.5))
+    fcap = min(12.5, fit_cap(ftext, 1200 - 54 - fx, 0.5))
     draw_text(fx, 1161, ftext, fcap, WHITE, 2.2, tracking=0.5)
     outdir = os.environ.get("MAKEFUN_OUTPUT_DIR") or os.path.dirname(os.path.abspath(__file__))
     save_png(os.path.join(outdir, "entry.png"))
